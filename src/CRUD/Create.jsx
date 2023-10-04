@@ -1,26 +1,25 @@
-import axios from "axios"
 import { useRef, useState ,useEffect} from "react"
-import Login from "../Authentication/Login"
-import { Navigate, useNavigate } from "react-router-dom"
+import {  useNavigate } from "react-router-dom"
 import { Button, Col, Form, FormCheck, FormControl, FormGroup, FormLabel, FormText , Row } from "react-bootstrap"
+import ApiAppartment from "../axios/Api/ApiAppartment";
+import {useForm} from "react-hook-form";
+
 export default function Create(){
-    const titleInput = useRef()
-    const detailInput = useRef()
-    const priceInput = useRef()
-    const chambreInput = useRef()
     const [fileImage,setFileImage] = useState([])
+    const [available , setAvailable] = useState(false)
     const token = localStorage.getItem('token')
     const [errors,setErrors] = useState({})
     const [message,setMessage] = useState()
     const [success ,setSuccess] = useState(false)
-    const [available , setAvailable] = useState(false)
     const navigate = useNavigate()
     useEffect(()=>{
         if (!token) {
             navigate("/login")
         }
        },[token])
-    
+
+    const {register,handleSubmit,formState} = useForm()
+    const {isValid,isDirty} = formState
     const handleImage = (e) => {
         const file = e.target.files[0]
         const image = document.getElementById("imageNow")
@@ -28,55 +27,28 @@ export default function Create(){
         image.src = newUrl
         setFileImage(file)
     }
+    const submit2 = (data) => {
+        const formData = new FormData()
+        formData.append('title',data.title)
+        formData.append('detail',data.detail)
+        formData.append('main_image',fileImage)
+        formData.append('price_weck',data.price_weck)
+        formData.append('chambre',data.chambre)
+        formData.append('available',available)
+        ApiAppartment.create(formData).then(
+            (response) => {
+                if(response.errors){
+                    setSuccess(false)
+                    setErrors(response.errors)
+                    setMessage(response.message)
+                }
+                if(response.success){
+                    setMessage(response.message)
+                    setSuccess(true)
 
-    const submitForm = async(e)=>{
-        e.preventDefault()
-        const title = titleInput.current.value
-        const detail = detailInput.current.value
-        const price = priceInput.current.value
-        const chambre = chambreInput.current.value
-        
-        const data = new FormData()
-        data.append('title',title)
-        data.append('detail',detail)
-        data.append('main_image',fileImage)
-        data.append('price_weck',price)
-        data.append('chambre',chambre)
-        data.append('available',available)
-        
-
-        const config = {
-            headers: {
-              'Authorization': `Bearer ${token}`,
+                }
             }
-          };
-
-        const restForm = () => {
-            title = ''
-            detail = ''
-            price = ''
-            chambre = ''
-            setErrors({})
-            setAvailable(false)
-        }
-
-        await axios.post('http://localhost:8000/api/appartment',data,config)
-        .then(res => {
-            console.log(res)
-            const data = res.data
-            if(data.errors){
-                setErrors(data.errors)
-                setMessage(data.message)
-            }
-            if(data.success){
-                setMessage(data.message)
-                setSuccess(data.success)
-                restForm()
-            }
-            
-        })
-        .catch(error => console.log(error))
-        
+        ).catch(error => console.log(error))
     }
     return  (  <div className="container-fluid w-75 " style={{paddingLeft:"0px"}}>
         <h1>Create Appartment :</h1>
@@ -90,12 +62,12 @@ export default function Create(){
         </div>
         }
             {/* form create */}
-            <Form onSubmit={submitForm} >
+            <Form onSubmit={handleSubmit(submit2)} >
                 <Row>
                     <Col>
                         <FormGroup >
                             <FormLabel>Title</FormLabel>
-                            <FormControl type="text" ref={titleInput}/>
+                            <FormControl {...register('title')} type="text" />
                             {errors['title'] && <FormText className="text-danger">{errors['title']}</FormText>}
                         </FormGroup>
                     </Col>
@@ -114,7 +86,7 @@ export default function Create(){
                     <Col>
                         <FormGroup >
                             <FormLabel>Detail</FormLabel>
-                            <FormControl as="textarea" rows={3} ref={detailInput}/>
+                            <FormControl {...register('detail')} as="textarea" rows={3} />
                             {errors['detail'] && <FormText className="text-danger">{errors['detail']}</FormText>}
                         </FormGroup>
                     </Col>
@@ -123,14 +95,14 @@ export default function Create(){
                     <Col>
                         <FormGroup >
                             <FormLabel>Price</FormLabel>
-                            <FormControl type="number" step="0.01" ref={priceInput}/>
+                            <FormControl {...register('price_weck')} type="number" step="0.01" />
                             {errors['price_weck'] && <FormText className="text-danger">{errors['price_weck']}</FormText>}
                         </FormGroup>
                     </Col>
                     <Col>
                         <FormGroup >
                             <FormLabel>Chambre</FormLabel>
-                            <FormControl type="number"  ref={chambreInput} />
+                            <FormControl {...register('chambre')} type="number"  />
                             {errors['chambre'] && <FormText className="text-danger">{errors['chambre']}</FormText>}
                         </FormGroup>
                     </Col>
@@ -142,11 +114,12 @@ export default function Create(){
                     </Col>
                 </Row>
                 <div className="d-grid gap-2 m-1">
-                    <Button type="submit" variant="primary" >
+                    <Button disabled={!isDirty} type="submit" variant="primary" >
                         Create
                     </Button>
                 </div>
             </Form>
+
             </div>)
     
     
